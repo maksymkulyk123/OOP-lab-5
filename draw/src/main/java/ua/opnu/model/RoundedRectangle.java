@@ -1,7 +1,6 @@
 package ua.opnu.model;
 
 import java.awt.*;
-import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 
 public class RoundedRectangle extends DrawShape {
