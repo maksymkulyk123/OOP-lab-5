@@ -42,6 +42,8 @@ public class PaintSurface extends JComponent {
         // Так як ми успадкувались від класу JComponent,
         // ми викликаємо метод цього класу
         super.setPreferredSize(new Dimension(400, 400));
+        setBackground(Color.WHITE);
+        setOpaque(true);
 
         // Тут ми прописуємо реакцію на дії миші.
         // Ми повинні запрограмувати - що станеться, коли ми натиснемо на кнопку миші
@@ -66,6 +68,11 @@ public class PaintSurface extends JComponent {
             // кнопку миші
             public void mouseReleased(MouseEvent e) {
 
+                if (startDrag == null) {
+                    return;
+                }
+                endDrag = e.getPoint();
+
                 // Коли ми відпускаємо кнопку миші, до списку shapes додається нова фігура.
                 // Після цього ми очищаємо координати та перемальовуємо поверхню
 
@@ -77,6 +84,13 @@ public class PaintSurface extends JComponent {
                 // то нічого не додаємо, т.к. це якась помилка
 
                 DrawShape shape = DrawShape.newInstance(shapeType);
+
+                if (shape == null) {
+                    startDrag = null;
+                    endDrag = null;
+                    repaint();
+                    return;
+                }
 
                 // Записуємо значення стартової та кінцевої точки в об'єкт
                 shape.setStartPoint(startDrag);
@@ -110,8 +124,15 @@ public class PaintSurface extends JComponent {
         this.shapeType = type;
     }
 
+    public void clear() {
+        shapes.clear();
+        startDrag = null;
+        endDrag = null;
+        repaint();
+    }
+
     /*
-     * Метод paint викликається автоматично, коли відбувається перемалювання
+     * Метод paintComponent викликається автоматично, коли відбувається перемалювання
      * вікна. Ми самі його не викликаємо!
      *
      * Особливість роботи з 2D графікою така, що кожного разу ми маємо заново
@@ -119,45 +140,36 @@ public class PaintSurface extends JComponent {
      * які ми додали раніше. Саме для цього і був створений список shapes.
      * Якби його не було, то постаті фігури зникали б при кожному перемальовуванні.
      */
-    public void paint(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g;
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g.create();
+        try {
+            // Очищаємо попереднє зображення перед новим малюванням.
+            g2.setColor(getBackground());
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            paintBackgroundGrid(g2);
+            g2.setStroke(new BasicStroke(2));
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.50f));
 
-        // 1. Встановлюємо згладжування
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        // 2. Рисуємо фонову сітку
-        paintBackgroundGrid(g2);
-        // 3. Встановлюємо розмір рамки фігури у 2 пікселі
-        g2.setStroke(new BasicStroke(2));
-        // 4. Робимо напівпрозорим фон
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.50f));
+            shapes.forEach(s -> {
+                g2.setPaint(Color.BLACK);
+                g2.draw(s.getShape());
+                g2.setPaint(colors.get(shapes.indexOf(s) % colors.size()));
+                g2.fill(s.getShape());
+            });
 
-        // Беремо кожну фігуру зі списку фігур та малюємо її на поверхні
-        shapes.forEach(s -> {
-            // Чорний колір обідка фігури
-            g2.setPaint(Color.BLACK);
-            // Рисуємо контур фігури
-            g2.draw(s.getShape());
-            // Встановлюємо колір фону фігури
-            g2.setPaint(colors.get(shapes.indexOf(s) % 6));
-            // Зафарбовуємо фігуру
-            g2.fill(s.getShape());
-        });
-
-        // Якщо перемальовка відбувається в момент, коли ми малюємо нову фігуру
-        // малюємо сірий контур фігури, яку хочемо намалювати
-        if (startDrag != null && endDrag != null) {
-            g2.setPaint(Color.LIGHT_GRAY);
-
-            // Т.к. у нас кілька типів фігур, ми повинні:
-            // 1 - отримати значення поля shapeType - воно містить тип фігури,
-            // який ми маємо намалювати
-            // 2. Залежно від значення shapeType – створити об'єкт того чи іншого класу
-            // Якщо поле shapeType містить якесь інше значення або поле порожнє
-            // то нічого не додаємо, т.к. це якась помилка
-            DrawShape shape = DrawShape.newInstance(shapeType);
-
-            // Рисуємо фігуру
-            g2.draw(shape.getShape(startDrag, endDrag));
+            // Показуємо контур фігури під час перетягування миші.
+            if (startDrag != null && endDrag != null) {
+                g2.setPaint(Color.LIGHT_GRAY);
+                DrawShape shape = DrawShape.newInstance(shapeType);
+                if (shape != null) {
+                    g2.draw(shape.getShape(startDrag, endDrag));
+                }
+            }
+        } finally {
+            g2.dispose();
         }
     }
 

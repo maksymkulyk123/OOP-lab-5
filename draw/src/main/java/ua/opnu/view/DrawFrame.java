@@ -34,7 +34,7 @@ public class DrawFrame extends JFrame {
         // елементи всередині фрейму)
         this.setLayout(new BorderLayout());
 
-        // Додаємо верхню панель із трьома кнопками
+        // Додаємо верхню панель із кнопками
         this.add(setButtonPanel(), BorderLayout.NORTH);
 
         // Створюємо об'єкт області малювання
@@ -99,8 +99,13 @@ public class DrawFrame extends JFrame {
         // Додаємо другу кнопку на верхню панель
         buttonPanel.add(rounded_rect);
 
-        // TODO: додати кнопку для еліпса за аналогією з іншими кнопками
-        // TODO: для додаткових балів додати кнопку "Clear" для очищення всіх фігур
+        BigTextButton ellipse = new BigTextButton("Ellipse");
+        ellipse.addActionListener(e -> surface.setShapeType(DrawShape.SHAPE_ELLIPSE));
+        buttonPanel.add(ellipse);
+
+        BigTextButton clear = new BigTextButton("Clear");
+        clear.addActionListener(e -> surface.clear());
+        buttonPanel.add(clear);
 
         return buttonPanel;
     }
